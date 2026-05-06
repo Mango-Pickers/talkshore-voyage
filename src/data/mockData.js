@@ -316,3 +316,24 @@ export const videos = [
     views: 2110,
   },
 ];
+
+export const userProfile = {
+  id: "user_1",
+  name: "Abraham",
+  avatar_initials: "A",
+  streak_days: 47,
+  active_languages: [
+    {
+      code: "es",
+      name: "Spanish",
+      flag: "🇪🇸",
+      level: "B1",
+    },
+    {
+      code: "it",
+      name: "Italian",
+      flag: "🇮🇹",
+      level: "A2",
+    },
+  ],
+};

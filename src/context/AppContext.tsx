@@ -1,44 +1,248 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { userProfile as defaultProfile } from "@/data/mockData";
+import {
+  createContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
-type OnboardingState = {
-  language?: string;
+import { User } from "@supabase/supabase-js";
+
+import { supabase } from "@/lib/supabaseClient";
+
+/* ================= TYPES ================= */
+
+export type UserRole =
+  | "learner"
+  | "guide";
+
+export type UserProfile = {
+  id: string;
+
+  full_name: string;
+
+  email: string;
+
+  role: UserRole;
+
+  avatar_url?: string;
+
+  native_language?: string;
+
+  learning_language?: string;
+
   level?: string;
+
   goal?: string;
+
+  created_at?: string;
+};
+
+export type OnboardingState = {
+  language?: string;
+
+  level?: string;
+
+  goal?: string;
+
   daysPerWeek?: number;
-  role?: "learner" | "guide";
-  name?: string;
-  email?: string;
+
+  role?: UserRole;
 };
 
-type AppContextType = {
-  profile: typeof defaultProfile;
-  setProfile: (p: typeof defaultProfile) => void;
+/* ================= CONTEXT TYPE ================= */
+
+export type AppContextType = {
+  user: User | null;
+
+  profile: UserProfile | null;
+
+  loading: boolean;
+
   activeLanguage: string;
-  setActiveLanguage: (l: string) => void;
+
+  setActiveLanguage: (
+    language: string
+  ) => void;
+
   onboarding: OnboardingState;
-  setOnboarding: (o: OnboardingState) => void;
+
+  setOnboarding: (
+    onboarding: OnboardingState
+  ) => void;
+
   isOnboarded: boolean;
-  setIsOnboarded: (b: boolean) => void;
+
+  setIsOnboarded: (
+    onboarded: boolean
+  ) => void;
+
+  refreshProfile: () => Promise<void>;
 };
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+/* ================= CONTEXT ================= */
 
-export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [profile, setProfile] = useState(defaultProfile);
-  const [activeLanguage, setActiveLanguage] = useState("es");
-  const [onboarding, setOnboarding] = useState<OnboardingState>({});
-  const [isOnboarded, setIsOnboarded] = useState(false);
+import { AppContext } from "./app-context";
+
+/* ================= PROVIDER ================= */
+
+type AppProviderProps = {
+  children: ReactNode;
+};
+
+export const AppProvider = ({
+  children,
+}: AppProviderProps) => {
+  const [user, setUser] =
+    useState<User | null>(null);
+
+  const [profile, setProfile] =
+    useState<UserProfile | null>(
+      null
+    );
+
+  const [loading, setLoading] =
+    useState<boolean>(true);
+
+  const [activeLanguage, setActiveLanguage] =
+    useState<string>("es");
+
+  const [onboarding, setOnboarding] =
+    useState<OnboardingState>({});
+
+  const [isOnboarded, setIsOnboarded] =
+    useState<boolean>(false);
+
+  /* ================= LOAD PROFILE ================= */
+
+  const loadProfile = async (
+    userId: string
+  ): Promise<void> => {
+    const { data, error } =
+      await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+    if (error) {
+      console.error(
+        "Failed to load profile:",
+        error
+      );
+
+      return;
+    }
+
+    const typedProfile =
+      data as UserProfile;
+
+    setProfile(typedProfile);
+
+    if (
+      typedProfile.learning_language
+    ) {
+      setActiveLanguage(
+        typedProfile.learning_language
+      );
+    }
+
+    if (
+      typedProfile.learning_language &&
+      typedProfile.level
+    ) {
+      setIsOnboarded(true);
+    }
+  };
+
+  /* ================= REFRESH PROFILE ================= */
+
+  const refreshProfile =
+    async (): Promise<void> => {
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      if (!user) return;
+
+      await loadProfile(user.id);
+    };
+
+  /* ================= INIT AUTH ================= */
+
+  useEffect(() => {
+    const initialize =
+      async (): Promise<void> => {
+        const {
+          data: { user },
+        } =
+          await supabase.auth.getUser();
+
+        setUser(user);
+
+        if (user) {
+          await loadProfile(user.id);
+        }
+
+        setLoading(false);
+      };
+
+    initialize();
+
+    const {
+      data: { subscription },
+    } =
+      supabase.auth.onAuthStateChange(
+        async (_event, session) => {
+          const currentUser =
+            session?.user ?? null;
+
+          setUser(currentUser);
+
+          if (currentUser) {
+            await loadProfile(
+              currentUser.id
+            );
+          } else {
+            setProfile(null);
+
+            setIsOnboarded(false);
+          }
+        }
+      );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  /* ================= PROVIDER ================= */
 
   return (
-    <AppContext.Provider value={{ profile, setProfile, activeLanguage, setActiveLanguage, onboarding, setOnboarding, isOnboarded, setIsOnboarded }}>
+    <AppContext.Provider
+      value={{
+        user,
+
+        profile,
+
+        loading,
+
+        activeLanguage,
+
+        setActiveLanguage,
+
+        onboarding,
+
+        setOnboarding,
+
+        isOnboarded,
+
+        setIsOnboarded,
+
+        refreshProfile,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
-};
-
-export const useApp = () => {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used inside AppProvider");
-  return ctx;
 };

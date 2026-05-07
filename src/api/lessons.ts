@@ -5,11 +5,15 @@ export const getLessons = async () => {
     .from("lessons")
     .select(`
       *,
-      scenarios (*)
-    `);
+      scenarios (
+        id,
+        title
+      )
+    `)
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching lessons:", error);
+    console.error("LESSONS ERROR:", error);
     return [];
   }
 

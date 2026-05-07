@@ -1,32 +1,30 @@
 import {
-  createContext,
   useEffect,
   useState,
   ReactNode,
 } from "react";
 
-import { User } from "@supabase/supabase-js";
+import { User }
+from "@supabase/supabase-js";
 
-import { supabase } from "@/lib/supabaseClient";
+import { supabase }
+from "@/lib/supabaseClient";
+
+import { AppContext }
+from "./app-context";
 
 import type {
-  AppContextType,
   UserProfile,
   OnboardingState,
 } from "./app-types";
 
-export const AppContext =
-  createContext<AppContextType | undefined>(
-    undefined
-  );
-
-type AppProviderProps = {
+type Props = {
   children: ReactNode;
 };
 
 export const AppProvider = ({
   children,
-}: AppProviderProps) => {
+}: Props) => {
   const [user, setUser] =
     useState<User | null>(null);
 
@@ -62,29 +60,29 @@ export const AppProvider = ({
       return;
     }
 
-    const typedProfile =
+    const typed =
       data as UserProfile;
 
-    setProfile(typedProfile);
+    setProfile(typed);
 
     if (
-      typedProfile.learning_language
+      typed.learning_language
     ) {
       setActiveLanguage(
-        typedProfile.learning_language
+        typed.learning_language
       );
     }
 
     if (
-      typedProfile.learning_language &&
-      typedProfile.level
+      typed.learning_language &&
+      typed.level
     ) {
       setIsOnboarded(true);
     }
   };
 
   const refreshProfile =
-    async (): Promise<void> => {
+    async () => {
       const {
         data: { user },
       } =
@@ -96,7 +94,7 @@ export const AppProvider = ({
     };
 
   useEffect(() => {
-    const initialize = async () => {
+    const init = async () => {
       const {
         data: { user },
       } =
@@ -111,7 +109,7 @@ export const AppProvider = ({
       setLoading(false);
     };
 
-    initialize();
+    init();
 
     const {
       data: { subscription },
@@ -130,9 +128,9 @@ export const AppProvider = ({
           } else {
             setProfile(null);
 
-            setIsOnboarded(false);
-
             setOnboarding({});
+
+            setIsOnboarded(false);
           }
         }
       );

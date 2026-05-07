@@ -1,30 +1,27 @@
 import {
+  ReactNode,
   useEffect,
   useState,
-  ReactNode,
 } from "react";
 
-import { User }
-from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
 
-import { supabase }
-from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
-import { AppContext }
-from "./app-context";
+import { AppContext } from "./app-context";
 
 import type {
   UserProfile,
   OnboardingState,
 } from "./app-types";
 
-type Props = {
+type AppProviderProps = {
   children: ReactNode;
 };
 
 export const AppProvider = ({
   children,
-}: Props) => {
+}: AppProviderProps) => {
   const [user, setUser] =
     useState<User | null>(null);
 
@@ -56,33 +53,37 @@ export const AppProvider = ({
         .single();
 
     if (error) {
-      console.error(error);
+      console.error(
+        "Failed to load profile:",
+        error
+      );
+
       return;
     }
 
-    const typed =
+    const typedProfile =
       data as UserProfile;
 
-    setProfile(typed);
+    setProfile(typedProfile);
 
     if (
-      typed.learning_language
+      typedProfile.learning_language
     ) {
       setActiveLanguage(
-        typed.learning_language
+        typedProfile.learning_language
       );
     }
 
     if (
-      typed.learning_language &&
-      typed.level
+      typedProfile.learning_language &&
+      typedProfile.level
     ) {
       setIsOnboarded(true);
     }
   };
 
   const refreshProfile =
-    async () => {
+    async (): Promise<void> => {
       const {
         data: { user },
       } =
@@ -94,7 +95,7 @@ export const AppProvider = ({
     };
 
   useEffect(() => {
-    const init = async () => {
+    const initialize = async () => {
       const {
         data: { user },
       } =
@@ -109,7 +110,7 @@ export const AppProvider = ({
       setLoading(false);
     };
 
-    init();
+    initialize();
 
     const {
       data: { subscription },
@@ -128,9 +129,9 @@ export const AppProvider = ({
           } else {
             setProfile(null);
 
-            setOnboarding({});
-
             setIsOnboarded(false);
+
+            setOnboarding({});
           }
         }
       );

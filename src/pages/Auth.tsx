@@ -1,21 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { supabase } from "@/lib/supabaseClient";
-
-type AuthMode =
-  | "login"
-  | "signup";
-
-type UserRole =
-  | "learner"
-  | "guide";
+import {
+  signIn,
+  signUp,
+} from "@/api/auth";
 
 const Auth = () => {
   const navigate = useNavigate();
 
-  const [mode, setMode] =
-    useState<AuthMode>("signup");
+  const [mode, setMode] = useState<
+    "login" | "signup"
+  >("signup");
 
   const [loading, setLoading] =
     useState(false);
@@ -24,131 +20,38 @@ const Auth = () => {
     useState("");
 
   const [form, setForm] = useState({
-    full_name: "",
+    username: "",
     email: "",
     password: "",
-    role: "learner" as UserRole,
+    role: "learner" as
+      | "learner"
+      | "guide",
   });
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } =
-        await supabase.auth.getSession();
-
-      if (session) {
-        navigate("/");
-      }
-    };
-
-    checkSession();
-  }, [navigate]);
-
-  const updateField = (
-    key: keyof typeof form,
-    value: string
-  ) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
+
       setError("");
 
-      /* LOGIN */
+      if (mode === "signup") {
+        await signUp(form);
 
-      if (mode === "login") {
-        const { data, error } =
-          await supabase.auth.signInWithPassword({
-            email: form.email,
-            password: form.password,
-          });
-
-        if (error) {
-          throw error;
-        }
-
-        if (!data.user) {
-          throw new Error(
-            "Unable to login"
-          );
-        }
-
-        const { data: profile } =
-          await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", data.user.id)
-            .single();
-
-        if (
-          profile?.role === "guide"
-        ) {
-          navigate("/guide");
-        } else {
-          navigate("/");
-        }
-
-        return;
-      }
-
-      /* SIGNUP */
-
-      const { data, error } =
-        await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-
-          options: {
-            data: {
-              full_name:
-                form.full_name,
-
-              role: form.role,
-            },
-          },
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data.user) {
-        throw new Error(
-          "Unable to create account"
-        );
-      }
-
-      const { error: profileError } =
-        await supabase
-          .from("profiles")
-          .insert({
-            id: data.user.id,
-
-            username:
-              form.full_name,
-
-            role: form.role,
-          });
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (form.role === "guide") {
-        navigate("/guide");
-      } else {
         navigate("/onboarding");
+      } else {
+        await signIn(
+          form.email,
+          form.password
+        );
+
+        navigate("/");
       }
     } catch (err: unknown) {
       console.error(err);
 
-      if (err instanceof Error) {
+      if (
+        err instanceof Error
+      ) {
         setError(err.message);
       } else {
         setError(
@@ -161,52 +64,57 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020817] text-white flex items-center justify-center px-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.18),transparent_60%)]" />
+    <div className="min-h-screen bg-[#020817] text-white flex items-center justify-center px-6">
+      <div className="w-full max-w-xl rounded-[32px] border border-[#1e293b] bg-[#06122b]/95 p-10 shadow-2xl shadow-blue-950/40">
+        {/* LOGO */}
 
-      <div className="relative z-10 w-full max-w-xl rounded-[32px] border border-[#173056] bg-[#04152d]/95 backdrop-blur-xl p-10 shadow-[0_0_80px_rgba(37,99,235,0.15)]">
         <div className="mb-10">
-          <h1 className="font-serif text-6xl text-[#f3b44e]">
+          <h1 className="font-serif text-5xl text-[#f3b64c]">
             TalkShore
           </h1>
 
-          <p className="tracking-[0.4em] text-sm text-gray-400 mt-2 uppercase">
+          <p className="mt-2 text-sm tracking-[0.4em] text-slate-400 uppercase">
             Voyage Portal
           </p>
         </div>
 
-        <div className="mb-8">
-          <h2 className="font-serif text-4xl mb-3">
-            {mode === "signup"
-              ? "Begin your voyage"
-              : "Welcome back"}
-          </h2>
+        {/* TITLE */}
 
-          <p className="text-gray-400">
-            Learn languages through
-            immersive conversation.
-          </p>
-        </div>
+        <h2 className="font-serif text-5xl mb-3">
+          {mode === "signup"
+            ? "Begin your voyage"
+            : "Welcome back"}
+        </h2>
+
+        <p className="text-slate-400 mb-8 text-lg">
+          Learn languages through
+          immersive conversation.
+        </p>
+
+        {/* ERROR */}
 
         {error && (
-          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
             {error}
           </div>
         )}
+
+        {/* FORM */}
 
         <div className="space-y-5">
           {mode === "signup" && (
             <input
               type="text"
-              placeholder="Your name"
-              value={form.full_name}
+              placeholder="Username"
+              value={form.username}
               onChange={(e) =>
-                updateField(
-                  "full_name",
-                  e.target.value
-                )
+                setForm({
+                  ...form,
+                  username:
+                    e.target.value,
+                })
               }
-              className="w-full rounded-2xl border border-[#173056] bg-[#0b1d3a] px-5 py-4 outline-none focus:border-[#f3b44e]"
+              className="w-full rounded-2xl border border-[#1e3a5f] bg-[#0b1d3a] p-5 text-white outline-none transition focus:border-[#f3b64c]"
             />
           )}
 
@@ -215,12 +123,13 @@ const Auth = () => {
             placeholder="Email"
             value={form.email}
             onChange={(e) =>
-              updateField(
-                "email",
-                e.target.value
-              )
+              setForm({
+                ...form,
+                email:
+                  e.target.value,
+              })
             }
-            className="w-full rounded-2xl border border-[#173056] bg-[#0b1d3a] px-5 py-4 outline-none focus:border-[#f3b44e]"
+            className="w-full rounded-2xl border border-[#1e3a5f] bg-[#0b1d3a] p-5 text-white outline-none transition focus:border-[#f3b64c]"
           />
 
           <input
@@ -228,29 +137,33 @@ const Auth = () => {
             placeholder="Password"
             value={form.password}
             onChange={(e) =>
-              updateField(
-                "password",
-                e.target.value
-              )
+              setForm({
+                ...form,
+                password:
+                  e.target.value,
+              })
             }
-            className="w-full rounded-2xl border border-[#173056] bg-[#0b1d3a] px-5 py-4 outline-none focus:border-[#f3b44e]"
+            className="w-full rounded-2xl border border-[#1e3a5f] bg-[#0b1d3a] p-5 text-white outline-none transition focus:border-[#f3b64c]"
           />
+
+          {/* ROLE */}
 
           {mode === "signup" && (
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() =>
-                  updateField(
-                    "role",
-                    "learner"
-                  )
+                  setForm({
+                    ...form,
+                    role:
+                      "learner",
+                  })
                 }
-                className={`rounded-2xl border px-5 py-5 ${
+                className={`rounded-2xl border p-5 text-lg transition ${
                   form.role ===
                   "learner"
-                    ? "border-[#f3b44e] bg-[#0b1d3a]"
-                    : "border-[#173056]"
+                    ? "border-[#f3b64c] bg-[#0b1d3a]"
+                    : "border-[#1e3a5f] bg-transparent"
                 }`}
               >
                 Learner
@@ -259,16 +172,16 @@ const Auth = () => {
               <button
                 type="button"
                 onClick={() =>
-                  updateField(
-                    "role",
-                    "guide"
-                  )
+                  setForm({
+                    ...form,
+                    role: "guide",
+                  })
                 }
-                className={`rounded-2xl border px-5 py-5 ${
+                className={`rounded-2xl border p-5 text-lg transition ${
                   form.role ===
                   "guide"
-                    ? "border-[#f3b44e] bg-[#0b1d3a]"
-                    : "border-[#173056]"
+                    ? "border-[#f3b64c] bg-[#0b1d3a]"
+                    : "border-[#1e3a5f] bg-transparent"
                 }`}
               >
                 Guide
@@ -276,10 +189,12 @@ const Auth = () => {
             </div>
           )}
 
+          {/* SUBMIT */}
+
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full rounded-full bg-[#f3b44e] py-4 text-lg font-semibold text-black hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-full bg-[#f3b64c] py-5 text-xl font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
           >
             {loading
               ? "Loading..."
@@ -287,6 +202,8 @@ const Auth = () => {
               ? "Set Sail"
               : "Continue"}
           </button>
+
+          {/* TOGGLE */}
 
           <button
             type="button"
@@ -297,7 +214,7 @@ const Auth = () => {
                   : "signup"
               )
             }
-            className="w-full text-sm text-gray-400 hover:text-white"
+            className="w-full text-center text-sm text-slate-400 transition hover:text-white"
           >
             {mode === "signup"
               ? "Already have an account? Login"

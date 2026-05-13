@@ -1,73 +1,92 @@
 import { supabase } from "@/lib/supabaseClient";
 
-type SignUpData = {
+export type UserRole =
+  | "learner"
+  | "guide";
+
+interface SignUpData {
+  username: string;
   email: string;
   password: string;
-  full_name: string;
-  role: "learner" | "guide";
-};
+  role: UserRole;
+}
 
-export const signUp = async ({
-  email,
-  password,
-  full_name,
-  role,
-}: SignUpData) => {
-  const { data, error } =
-    await supabase.auth.signUp({
-      email,
-      password,
-    });
+/* =========================================================
+   SIGN UP
+========================================================= */
+
+export async function signUp(
+  data: SignUpData
+) {
+  const {
+    data: authData,
+    error,
+  } = await supabase.auth.signUp({
+    email: data.email,
+    password: data.password,
+  });
 
   if (error) {
     throw error;
   }
 
-  const user = data.user;
+  const user = authData.user;
 
   if (!user) {
-    throw new Error("User not created");
+    throw new Error(
+      "User creation failed"
+    );
   }
 
-  const { error: profileError } =
-    await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        email,
-        full_name,
-        role,
-      });
+  const {
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .insert({
+      id: user.id,
+      username: data.username,
+      role: data.role,
+    });
 
   if (profileError) {
     throw profileError;
   }
 
-  return data;
-};
+  return user;
+}
 
-export const signIn = async (
+/* =========================================================
+   SIGN IN
+========================================================= */
+
+export async function signIn(
   email: string,
   password: string
-) => {
+) {
   const { data, error } =
-    await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    await supabase.auth.signInWithPassword(
+      {
+        email,
+        password,
+      }
+    );
 
   if (error) {
     throw error;
   }
 
   return data;
-};
+}
 
-export const signOut = async () => {
+/* =========================================================
+   SIGN OUT
+========================================================= */
+
+export async function signOut() {
   const { error } =
     await supabase.auth.signOut();
 
   if (error) {
     throw error;
   }
-};
+}

@@ -22,6 +22,8 @@ type AppProviderProps = {
 export const AppProvider = ({
   children,
 }: AppProviderProps) => {
+  /* ================= STATE ================= */
+
   const [user, setUser] =
     useState<User | null>(null);
 
@@ -33,8 +35,10 @@ export const AppProvider = ({
   const [loading, setLoading] =
     useState(true);
 
-  const [activeLanguage, setActiveLanguage] =
-    useState("es");
+  const [
+    activeLanguage,
+    setActiveLanguage,
+  ] = useState("es");
 
   const [onboarding, setOnboarding] =
     useState<OnboardingState>({});
@@ -42,45 +46,61 @@ export const AppProvider = ({
   const [isOnboarded, setIsOnboarded] =
     useState(false);
 
+  /* ================= LOAD PROFILE ================= */
+
   const loadProfile = async (
     userId: string
   ) => {
-    const { data, error } =
-      await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+    try {
+      const { data, error } =
+        await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
 
-    if (error) {
-      console.error(
-        "Failed to load profile:",
-        error
-      );
+      if (error) {
+        console.error(
+          "PROFILE LOAD ERROR:",
+          error
+        );
 
-      return;
-    }
+        return;
+      }
 
-    const typedProfile =
-      data as UserProfile;
+      const typedProfile =
+        data as UserProfile;
 
-    setProfile(typedProfile);
+      setProfile(typedProfile);
 
-    if (
-      typedProfile.learning_language
-    ) {
-      setActiveLanguage(
+      /* ================= ACTIVE LANGUAGE ================= */
+
+      if (
         typedProfile.learning_language
-      );
-    }
+      ) {
+        setActiveLanguage(
+          typedProfile.learning_language
+        );
+      }
 
-    if (
-      typedProfile.learning_language &&
-      typedProfile.level
-    ) {
-      setIsOnboarded(true);
+      /* ================= ONBOARDING ================= */
+
+      const completed =
+        !!typedProfile.learning_language &&
+        !!typedProfile.level &&
+        !!typedProfile.goal &&
+        !!typedProfile.days_per_week;
+
+      setIsOnboarded(completed);
+    } catch (err) {
+      console.error(
+        "PROFILE CRASH:",
+        err
+      );
     }
   };
+
+  /* ================= REFRESH PROFILE ================= */
 
   const refreshProfile =
     async (): Promise<void> => {
@@ -94,36 +114,47 @@ export const AppProvider = ({
       await loadProfile(user.id);
     };
 
+  /* ================= INITIALIZE APP ================= */
+
   useEffect(() => {
     const initialize = async () => {
-      const {
-        data: { user },
-      } =
-        await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } =
+          await supabase.auth.getUser();
 
-      setUser(user);
+        setUser(user);
 
-      if (user) {
-        await loadProfile(user.id);
+        if (user) {
+          await loadProfile(user.id);
+        }
+      } catch (err) {
+        console.error(
+          "INITIALIZATION ERROR:",
+          err
+        );
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     initialize();
+
+    /* ================= AUTH LISTENER ================= */
 
     const {
       data: { subscription },
     } =
       supabase.auth.onAuthStateChange(
-        async (_event, session) => {
+        (_event, session) => {
           const currentUser =
             session?.user ?? null;
 
           setUser(currentUser);
 
           if (currentUser) {
-            await loadProfile(
+            loadProfile(
               currentUser.id
             );
           } else {
@@ -140,6 +171,8 @@ export const AppProvider = ({
       subscription.unsubscribe();
     };
   }, []);
+
+  /* ================= PROVIDER ================= */
 
   return (
     <AppContext.Provider

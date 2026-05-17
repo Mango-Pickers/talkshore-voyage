@@ -4,8 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  User,
-  Anchor,
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
@@ -13,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { languages } from "@/data/mockData";
 
 import { useApp } from "@/hooks/useApp";
+
+import { supabase } from "@/lib/supabaseClient";
 
 import Logo from "@/components/Logo";
 
@@ -62,10 +62,12 @@ const Onboarding = () => {
   const navigate = useNavigate();
 
   const {
+    user,
     onboarding,
     setOnboarding,
     setIsOnboarded,
     setActiveLanguage,
+    refreshProfile,
   } = useApp();
 
   /* ================= LOCAL STATE ================= */
@@ -73,14 +75,11 @@ const Onboarding = () => {
   const [step, setStep] =
     useState<number>(1);
 
+  const [saving, setSaving] =
+    useState(false);
+
   const [draft, setDraft] =
     useState(onboarding);
-
-  const [name, setName] =
-    useState<string>("");
-
-  const [email, setEmail] =
-    useState<string>("");
 
   /* ================= UPDATE ================= */
 
@@ -96,7 +95,7 @@ const Onboarding = () => {
   /* ================= NAVIGATION ================= */
 
   const next = () => {
-    if (step < 6) {
+    if (step < 4) {
       setStep(step + 1);
     }
   };
@@ -109,18 +108,45 @@ const Onboarding = () => {
 
   /* ================= FINISH ================= */
 
-  const finish = () => {
-    setOnboarding(draft);
+  const finish = async () => {
+    if (!user) return;
 
-    if (draft.language) {
-      setActiveLanguage(
-        draft.language
-      );
+    try {
+      setSaving(true);
+
+      await supabase
+        .from("profiles")
+        .update({
+          learning_language:
+            draft.language,
+
+          level: draft.level,
+
+          goal: draft.goal,
+
+          days_per_week:
+            draft.daysPerWeek,
+        })
+        .eq("id", user.id);
+
+      setOnboarding(draft);
+
+      if (draft.language) {
+        setActiveLanguage(
+          draft.language
+        );
+      }
+
+      await refreshProfile();
+
+      setIsOnboarded(true);
+
+      navigate("/app");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
-
-    setIsOnboarded(true);
-
-    navigate("/app");
   };
 
   /* ================= VALIDATION ================= */
@@ -130,11 +156,7 @@ const Onboarding = () => {
     (step === 2 && draft.level) ||
     (step === 3 && draft.goal) ||
     (step === 4 &&
-      draft.daysPerWeek) ||
-    (step === 5 && draft.role) ||
-    (step === 6 &&
-      name.trim().length > 0 &&
-      email.trim().length > 0);
+      draft.daysPerWeek);
 
   /* ================= UI ================= */
 
@@ -146,7 +168,9 @@ const Onboarding = () => {
         <Logo />
 
         <button
-          onClick={() => navigate("/")}
+          onClick={() =>
+            navigate("/")
+          }
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           Exit
@@ -158,7 +182,7 @@ const Onboarding = () => {
       <div className="px-6 pt-6">
         <div className="max-w-2xl mx-auto">
           <div className="text-xs text-muted-foreground mb-2">
-            Step {Math.min(step, 5)} of 5
+            Step {step} of 4
           </div>
 
           <div className="h-1 bg-surface-2 rounded-full overflow-hidden">
@@ -166,7 +190,7 @@ const Onboarding = () => {
               className="h-full bg-primary transition-all duration-300"
               style={{
                 width: `${
-                  (Math.min(step, 5) / 5) *
+                  (step / 4) *
                   100
                 }%`,
               }}
@@ -371,127 +395,6 @@ const Onboarding = () => {
               </div>
             </>
           )}
-
-          {/* ================= STEP 5 ================= */}
-
-          {step === 5 && (
-            <>
-              <h1 className="font-serif text-4xl mb-2">
-                How are you joining
-                TalkShore?
-              </h1>
-
-              <p className="text-muted-foreground mb-8">
-                Both paths are welcome
-                aboard.
-              </p>
-
-              <div className="grid sm:grid-cols-2 gap-3">
-                {[
-                  {
-                    id: "learner",
-                    icon: User,
-                    title: "Learner",
-                    desc: "Join live shores and practice with guides.",
-                  },
-
-                  {
-                    id: "guide",
-                    icon: Anchor,
-                    title: "Guide",
-                    desc: "Host conversation sessions and help learners grow.",
-                  },
-                ].map((option) => {
-                  const active =
-                    draft.role ===
-                    option.id;
-
-                  const Icon =
-                    option.icon;
-
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() =>
-                        updateDraft({
-                          role:
-                            option.id as
-                              | "learner"
-                              | "guide",
-                        })
-                      }
-                      className={`ts-card p-6 text-left transition ${
-                        active
-                          ? "ring-2 ring-primary"
-                          : "ts-hover"
-                      }`}
-                    >
-                      <Icon className="text-primary mb-3" />
-
-                      <div className="font-serif text-2xl mb-1">
-                        {option.title}
-                      </div>
-
-                      <div className="text-sm text-muted-foreground">
-                        {option.desc}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* ================= STEP 6 ================= */}
-
-          {step === 6 && (
-            <>
-              <h1 className="font-serif text-4xl mb-2">
-                Your voyage is ready.
-              </h1>
-
-              <p className="text-muted-foreground mb-8">
-                A few last details and
-                we will set sail.
-              </p>
-
-              <div className="grid gap-4">
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">
-                    Your name
-                  </label>
-
-                  <input
-                    value={name}
-                    onChange={(e) =>
-                      setName(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Abraham"
-                    className="w-full bg-surface border border-surface-2 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">
-                    Email
-                  </label>
-
-                  <input
-                    value={email}
-                    onChange={(e) =>
-                      setEmail(
-                        e.target.value
-                      )
-                    }
-                    placeholder="you@example.com"
-                    className="w-full bg-surface border border-surface-2 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                  />
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </main>
 
@@ -510,14 +413,19 @@ const Onboarding = () => {
 
           <button
             onClick={
-              step === 6
+              step === 4
                 ? finish
                 : next
             }
-            disabled={!canContinue}
+            disabled={
+              !canContinue ||
+              saving
+            }
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-medium px-6 py-3 rounded-full hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            {step === 6
+            {saving
+              ? "Saving..."
+              : step === 4
               ? "Set sail"
               : "Continue"}
 

@@ -1,13 +1,29 @@
-import { useState, useEffect } from "react";
-import { Bell, Anchor, Users } from "lucide-react";
+import {
+  useState,
+  useEffect,
+} from "react";
+
+import {
+  Bell,
+  Anchor,
+  Users,
+} from "lucide-react";
+
 import { Link } from "react-router-dom";
 
-import { getSessions } from "@/api/sessions";
-import { bookSession, hasBooking } from "@/api/bookings";
+import {
+  getSessions,
+} from "@/api/sessions";
+
+import {
+  bookSession,
+  hasBooking,
+} from "@/api/bookings";
 
 import { useApp } from "@/hooks/useApp";
 
 import SessionModal from "@/components/SessionModal";
+
 import Logo from "@/components/Logo";
 
 import { lessons } from "@/data/mockData";
@@ -16,11 +32,13 @@ import { lessons } from "@/data/mockData";
 
 type Guide = {
   name: string;
+
   initials: string;
 };
 
 type Language = {
   code: string;
+
   name: string;
 };
 
@@ -30,91 +48,135 @@ type Scenario = {
 
 type Session = {
   id: string;
+
   status: string;
+
   level: string;
+
   participants: number;
 
   guides: Guide[];
+
   languages: Language[];
+
   scenarios: Scenario[];
 };
 
 /* ================= COMPONENT ================= */
 
 const Home = () => {
-  const { profile, activeLanguage } = useApp();
+  const {
+    profile,
+    user,
+    activeLanguage,
+  } = useApp();
 
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [openSession, setOpenSession] =
-    useState<string | null>(null);
+  const [sessions, setSessions] =
+    useState<Session[]>([]);
+
+  const [
+    openSession,
+    setOpenSession,
+  ] = useState<string | null>(
+    null
+  );
 
   /* ================= LOAD SESSIONS ================= */
 
   useEffect(() => {
-    const loadSessions = async () => {
-      try {
-        const data = await getSessions();
+    const loadSessions =
+      async () => {
+        try {
+          const data =
+            await getSessions();
 
-        setSessions(data || []);
-      } catch (error) {
-        console.error(
-          "Failed to load sessions:",
-          error
-        );
-      }
-    };
+          setSessions(data || []);
+        } catch (error) {
+          console.error(
+            "Failed to load sessions:",
+            error
+          );
+        }
+      };
 
     loadSessions();
   }, []);
 
   /* ================= BOOK SESSION ================= */
 
-  const handleBoard = async (
-    sessionId: string
-  ) => {
-    try {
-      const booked =
-        await hasBooking(sessionId);
+  const handleBoard =
+    async (
+      sessionId: string
+    ) => {
+      try {
+        const booked =
+          await hasBooking(
+            sessionId
+          );
 
-      if (!booked) {
-        await bookSession(sessionId);
+        if (!booked) {
+          await bookSession(
+            sessionId
+          );
+        }
+
+        setOpenSession(
+          sessionId
+        );
+      } catch (error) {
+        console.error(
+          "Booking error:",
+          error
+        );
+
+        alert(
+          "Could not join session."
+        );
       }
-
-      setOpenSession(sessionId);
-    } catch (error) {
-      console.error(
-        "Booking error:",
-        error
-      );
-
-      alert("Could not join session.");
-    }
-  };
+    };
 
   /* ================= DERIVED ================= */
 
-  const liveSessions = sessions.filter(
-    (session) => session.status === "live"
-  );
+  const liveSessions =
+    sessions.filter(
+      (session) =>
+        session.status ===
+        "live"
+    );
 
   const nextLesson =
     lessons.find(
       (lesson) =>
-        lesson.status === "in_progress"
+        lesson.status ===
+        "in_progress"
     ) ||
     lessons.find(
-      (lesson) => lesson.status === "ready"
+      (lesson) =>
+        lesson.status ===
+        "ready"
     );
 
-  const nextSession = nextLesson
-    ? sessions.find(
-        (session) =>
-          session.id === nextLesson.prepares_for
-      )
-    : null;
+  const nextSession =
+    nextLesson
+      ? sessions.find(
+          (session) =>
+            session.id ===
+            nextLesson.prepares_for
+        )
+      : null;
+
+  /* ================= USER DISPLAY ================= */
+
+  const firstName =
+    profile?.full_name?.split(" ")[0]
+    ?.split(" ")[0] ||
+  user?.user_metadata
+    ?.full_name
+    ?.split(" ")[0] ||
+  "Voyager";
 
   const userInitial =
-    profile?.full_name?.charAt(0) || "T";
+    firstName.charAt(0);
 
   /* ================= UI ================= */
 
@@ -141,12 +203,14 @@ const Home = () => {
       {/* ================= GREETING ================= */}
 
       <h1 className="font-serif text-4xl mb-1">
-        Good evening,{" "}
-        {profile?.full_name || "Captain"}
+        Welcome Aboard,
+        {" "}
+        {firstName}
       </h1>
 
       <p className="text-muted-foreground mb-6">
-        Your next shore boards soon.
+        Your next shore boards
+        soon.
       </p>
 
       {/* ================= ACTIVE LANGUAGE ================= */}
@@ -165,9 +229,11 @@ const Home = () => {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          Current level:{" "}
+          Current level:
+          {" "}
           <span className="text-foreground">
-            {profile?.level || "A1"}
+            {profile?.level ||
+              "A1"}
           </span>
         </div>
       </div>
@@ -188,72 +254,83 @@ const Home = () => {
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2 mb-8">
-        {liveSessions.map((session) => {
-          const guide =
-            session.guides?.[0];
+        {liveSessions.map(
+          (session) => {
+            const guide =
+              session.guides?.[0];
 
-          const language =
-            session.languages?.[0];
+            const language =
+              session.languages?.[0];
 
-          const scenario =
-            session.scenarios?.[0];
+            const scenario =
+              session.scenarios?.[0];
 
-          return (
-            <div
-              key={session.id}
-              className="ts-card p-4 min-w-[260px]"
-            >
-              {/* GUIDE */}
+            return (
+              <div
+                key={session.id}
+                className="ts-card p-4 min-w-[260px]"
+              >
+                {/* GUIDE */}
 
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-xs">
-                  {guide?.initials}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-xs">
+                    {
+                      guide?.initials
+                    }
+                  </div>
+
+                  <div className="flex items-center gap-1 text-sm">
+                    {guide?.name}
+
+                    <Anchor
+                      size={12}
+                      className="text-primary"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-sm">
-                  {guide?.name}
+                {/* LANGUAGE */}
 
-                  <Anchor
-                    size={12}
-                    className="text-primary"
-                  />
+                <div className="text-xs text-muted-foreground mb-1">
+                  {language?.code?.toUpperCase()}
+                  {" · "}
+                  {session.level}
                 </div>
-              </div>
 
-              {/* LANGUAGE */}
+                {/* SCENARIO */}
 
-              <div className="text-xs text-muted-foreground mb-1">
-                {language?.code?.toUpperCase()} ·{" "}
-                {session.level}
-              </div>
-
-              {/* SCENARIO */}
-
-              <p className="font-medium mb-3">
-                {scenario?.title}
-              </p>
-
-              {/* FOOTER */}
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs flex items-center gap-1">
-                  <Users size={12} />
-
-                  {session.participants}
-                </span>
-
-                <button
-                  onClick={() =>
-                    handleBoard(session.id)
+                <p className="font-medium mb-3">
+                  {
+                    scenario?.title
                   }
-                  className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-full hover:opacity-90 transition"
-                >
-                  Board
-                </button>
+                </p>
+
+                {/* FOOTER */}
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs flex items-center gap-1">
+                    <Users size={12} />
+
+                    {
+                      session.participants
+                    }
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      handleBoard(
+                        session.id
+                      )
+                    }
+                    className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-full hover:opacity-90 transition"
+                  >
+                    Board
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          }
+        )}
       </div>
 
       {/* ================= NEXT PORT ================= */}
@@ -266,18 +343,26 @@ const Home = () => {
 
           <div className="ts-card p-5 mb-8">
             <h3 className="font-serif text-xl mb-1">
-              {nextLesson.scenario}
+              {
+                nextLesson.scenario
+              }
             </h3>
 
             <p className="text-sm text-muted-foreground mb-4">
-              {nextLesson.duration_min} min
-              preparation session.
+              {
+                nextLesson.duration_min
+              }
+              {" "}
+              min preparation
+              session.
             </p>
 
             <p className="text-sm text-muted-foreground mb-6">
-              Prepares you for{" "}
+              Prepares you for
+              {" "}
               <span className="text-foreground">
-                {nextSession?.scenarios?.[0]
+                {nextSession
+                  ?.scenarios?.[0]
                   ?.title ||
                   "an upcoming shore"}
               </span>
@@ -296,9 +381,13 @@ const Home = () => {
       {/* ================= SESSION MODAL ================= */}
 
       <SessionModal
-        sessionId={openSession}
+        sessionId={
+          openSession
+        }
         onClose={() =>
-          setOpenSession(null)
+          setOpenSession(
+            null
+          )
         }
       />
     </div>

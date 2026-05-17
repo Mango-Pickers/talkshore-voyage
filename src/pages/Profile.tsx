@@ -6,6 +6,8 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
+import { supabase } from "@/lib/supabaseClient";
+
 import { useApp } from "@/hooks/useApp";
 
 const Profile = () => {
@@ -16,23 +18,30 @@ const Profile = () => {
 
   const nav = useNavigate();
 
+  /* ================= FIRST NAME ================= */
+
+  const firstName =
+    profile?.full_name?.split(" ")[0]
+      ?.split(" ")[0] || "Voyager";
+
+  /* ================= INITIALS ================= */
+
+  const initials = firstName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   /* ================= LOGOUT ================= */
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+
     setIsOnboarded(false);
 
     nav("/");
   };
-
-  /* ================= INITIALS ================= */
-
-  const initials =
-    profile?.full_name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "TS";
 
   /* ================= FALLBACKS ================= */
 
@@ -52,7 +61,7 @@ const Profile = () => {
       {/* ================= TITLE ================= */}
 
       <h1 className="font-serif text-4xl mb-6">
-        The Captain's Log
+        Your Voyage
       </h1>
 
       {/* ================= PROFILE ================= */}
@@ -69,8 +78,7 @@ const Profile = () => {
         </div>
 
         <div className="font-serif text-2xl">
-          {profile?.full_name ||
-            "Captain"}
+          {firstName}
         </div>
 
         <div className="text-sm text-muted-foreground">
@@ -141,9 +149,7 @@ const Profile = () => {
         </div>
 
         <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary w-[45%]"
-          />
+          <div className="h-full bg-primary w-[45%]" />
         </div>
       </div>
 
@@ -157,7 +163,7 @@ const Profile = () => {
       {/* ================= LOG ================= */}
 
       <h2 className="font-serif text-xl mb-3">
-        The Log
+        Your Activity
       </h2>
 
       <div className="ts-card divide-y divide-surface-2 mb-8">

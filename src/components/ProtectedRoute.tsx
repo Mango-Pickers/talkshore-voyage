@@ -9,13 +9,17 @@ type Props = {
 const ProtectedRoute = ({
   children,
 }: Props) => {
-  const { user, loading } =
-    useApp();
+  const {
+    user,
+    loading,
+  } = useApp();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        Loading...
+      <div className="min-h-screen bg-[#020817] text-white flex items-center justify-center">
+        <div className="text-lg">
+          Loading...
+        </div>
       </div>
     );
   }

@@ -1,17 +1,37 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+import {
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 
 import {
   signIn,
   signUp,
 } from "@/api/auth";
 
-const Auth = () => {
-  const navigate = useNavigate();
+import { supabase } from "@/lib/supabaseClient";
 
-  const [mode, setMode] = useState<
-    "login" | "signup"
-  >("signup");
+const Auth = () => {
+  const navigate =
+    useNavigate();
+
+  const location =
+    useLocation();
+
+  /* ================= MODE ================= */
+
+  const [mode, setMode] =
+    useState<
+      "login" | "signup"
+    >(
+      location.state?.mode ===
+        "login"
+        ? "login"
+        : "signup"
+    );
+
+  /* ================= STATE ================= */
 
   const [loading, setLoading] =
     useState(false);
@@ -19,54 +39,162 @@ const Auth = () => {
   const [error, setError] =
     useState("");
 
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    password: "",
-    role: "learner" as
-      | "learner"
-      | "guide",
-  });
+  const [form, setForm] =
+    useState({
+      first_name: "",
 
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
+      email: "",
 
-      setError("");
+      password: "",
 
-      if (mode === "signup") {
-        await signUp(form);
+      role:
+        "learner" as
+          | "learner"
+          | "guide",
+    });
 
-        navigate("/onboarding");
-      } else {
-        await signIn(
-          form.email,
-          form.password
-        );
+  /* ================= SUBMIT ================= */
 
-        navigate("/");
-      }
-    } catch (err: unknown) {
-      console.error(err);
+  const handleSubmit =
+    async () => {
+      try {
+        setLoading(true);
 
-      if (
-        err instanceof Error
+        setError("");
+
+        /* ================= LOGIN ================= */
+
+        if (
+          mode === "login"
+        ) {
+          if (
+            !form.email ||
+            !form.password
+          ) {
+            setError(
+              "Please enter your email and password."
+            );
+
+            return;
+          }
+
+          await signIn(
+            form.email.trim(),
+            form.password
+          );
+
+          /* ================= GET USER ================= */
+
+          const {
+            data: { user },
+          } =
+            await supabase.auth.getUser();
+
+          if (!user) {
+            setError(
+              "Could not load user."
+            );
+
+            return;
+          }
+
+          /* ================= LOAD PROFILE ================= */
+
+          const {
+            data: profile,
+          } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq(
+              "id",
+              user.id
+            )
+            .single();
+
+          /* ================= ROLE ROUTING ================= */
+
+          if (
+            profile?.role ===
+            "guide"
+          ) {
+            navigate(
+              "/guide-dashboard"
+            );
+          } else {
+            navigate("/app");
+          }
+
+          return;
+        }
+
+        /* ================= SIGNUP ================= */
+
+        if (
+          !form.first_name ||
+          !form.email ||
+          !form.password
+        ) {
+          setError(
+            "Please complete all fields."
+          );
+
+          return;
+        }
+
+        await signUp({
+          first_name:
+            form.first_name.trim(),
+
+          email:
+            form.email.trim(),
+
+          password:
+            form.password,
+
+          role: form.role,
+        });
+
+        /* ================= SIGNUP ROUTING ================= */
+
+        if (
+          form.role ===
+          "guide"
+        ) {
+          navigate(
+            "/guide-onboarding"
+          );
+        } else {
+          navigate(
+            "/onboarding"
+          );
+        }
+      } catch (
+        err: unknown
       ) {
-        setError(err.message);
-      } else {
-        setError(
-          "Authentication failed"
-        );
+        console.error(err);
+
+        if (
+          err instanceof Error
+        ) {
+          setError(
+            err.message
+          );
+        } else {
+          setError(
+            "Authentication failed"
+          );
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+  /* ================= UI ================= */
 
   return (
     <div className="min-h-screen bg-[#020817] text-white flex items-center justify-center px-6">
       <div className="w-full max-w-xl rounded-[32px] border border-[#1e293b] bg-[#06122b]/95 p-10 shadow-2xl shadow-blue-950/40">
-        {/* LOGO */}
+        {/* ================= BRAND ================= */}
 
         <div className="mb-10">
           <h1 className="font-serif text-5xl text-[#f3b64c]">
@@ -78,20 +206,22 @@ const Auth = () => {
           </p>
         </div>
 
-        {/* TITLE */}
+        {/* ================= TITLE ================= */}
 
         <h2 className="font-serif text-5xl mb-3">
-          {mode === "signup"
+          {mode ===
+          "signup"
             ? "Begin your voyage"
             : "Welcome back"}
         </h2>
 
         <p className="text-slate-400 mb-8 text-lg">
-          Learn languages through
-          immersive conversation.
+          Learn languages
+          through immersive
+          conversation.
         </p>
 
-        {/* ERROR */}
+        {/* ================= ERROR ================= */}
 
         {error && (
           <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
@@ -99,48 +229,69 @@ const Auth = () => {
           </div>
         )}
 
-        {/* FORM */}
+        {/* ================= FORM ================= */}
 
         <div className="space-y-5">
-          {mode === "signup" && (
+          {/* FIRST NAME */}
+
+          {mode ===
+            "signup" && (
             <input
               type="text"
-              placeholder="Username"
-              value={form.username}
-              onChange={(e) =>
+              placeholder="First name"
+              value={
+                form.first_name
+              }
+              onChange={(
+                e
+              ) =>
                 setForm({
                   ...form,
-                  username:
-                    e.target.value,
+
+                  first_name:
+                    e.target
+                      .value,
                 })
               }
               className="w-full rounded-2xl border border-[#1e3a5f] bg-[#0b1d3a] p-5 text-white outline-none transition focus:border-[#f3b64c]"
             />
           )}
 
+          {/* EMAIL */}
+
           <input
             type="email"
             placeholder="Email"
-            value={form.email}
+            value={
+              form.email
+            }
             onChange={(e) =>
               setForm({
                 ...form,
+
                 email:
-                  e.target.value,
+                  e.target
+                    .value,
               })
             }
             className="w-full rounded-2xl border border-[#1e3a5f] bg-[#0b1d3a] p-5 text-white outline-none transition focus:border-[#f3b64c]"
           />
 
+          {/* PASSWORD */}
+
           <input
             type="password"
             placeholder="Password"
-            value={form.password}
+            value={
+              form.password
+            }
             onChange={(e) =>
               setForm({
                 ...form,
+
                 password:
-                  e.target.value,
+                  e.target
+                    .value,
               })
             }
             className="w-full rounded-2xl border border-[#1e3a5f] bg-[#0b1d3a] p-5 text-white outline-none transition focus:border-[#f3b64c]"
@@ -148,13 +299,15 @@ const Auth = () => {
 
           {/* ROLE */}
 
-          {mode === "signup" && (
+          {mode ===
+            "signup" && (
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() =>
                   setForm({
                     ...form,
+
                     role:
                       "learner",
                   })
@@ -163,7 +316,7 @@ const Auth = () => {
                   form.role ===
                   "learner"
                     ? "border-[#f3b64c] bg-[#0b1d3a]"
-                    : "border-[#1e3a5f] bg-transparent"
+                    : "border-[#1e3a5f]"
                 }`}
               >
                 Learner
@@ -174,14 +327,16 @@ const Auth = () => {
                 onClick={() =>
                   setForm({
                     ...form,
-                    role: "guide",
+
+                    role:
+                      "guide",
                   })
                 }
                 className={`rounded-2xl border p-5 text-lg transition ${
                   form.role ===
                   "guide"
                     ? "border-[#f3b64c] bg-[#0b1d3a]"
-                    : "border-[#1e3a5f] bg-transparent"
+                    : "border-[#1e3a5f]"
                 }`}
               >
                 Guide
@@ -192,13 +347,18 @@ const Auth = () => {
           {/* SUBMIT */}
 
           <button
-            onClick={handleSubmit}
-            disabled={loading}
+            onClick={
+              handleSubmit
+            }
+            disabled={
+              loading
+            }
             className="w-full rounded-full bg-[#f3b64c] py-5 text-xl font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
           >
             {loading
               ? "Loading..."
-              : mode === "signup"
+              : mode ===
+                "signup"
               ? "Set Sail"
               : "Continue"}
           </button>
@@ -209,14 +369,16 @@ const Auth = () => {
             type="button"
             onClick={() =>
               setMode(
-                mode === "signup"
+                mode ===
+                  "signup"
                   ? "login"
                   : "signup"
               )
             }
             className="w-full text-center text-sm text-slate-400 transition hover:text-white"
           >
-            {mode === "signup"
+            {mode ===
+            "signup"
               ? "Already have an account? Login"
               : "Create account"}
           </button>

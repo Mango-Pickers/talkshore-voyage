@@ -7,7 +7,9 @@ export type UserRole =
 export type UserProfile = {
   id: string;
 
-  full_name: string;
+  full_name?: string;
+
+  username?: string;
 
   email: string;
 
@@ -23,6 +25,8 @@ export type UserProfile = {
 
   goal?: string;
 
+  days_per_week?: number;
+
   created_at?: string;
 };
 
@@ -34,8 +38,6 @@ export type OnboardingState = {
   goal?: string;
 
   daysPerWeek?: number;
-
-  role?: UserRole;
 };
 
 export type AppContextType = {

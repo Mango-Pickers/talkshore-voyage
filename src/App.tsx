@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 import {
   BrowserRouter,
   Routes,
@@ -12,13 +10,17 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-import { supabase } from "@/lib/supabaseClient";
+import {
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Toaster,
+} from "@/components/ui/toaster";
 
-import { Toaster } from "@/components/ui/toaster";
-
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import {
+  Toaster as Sonner,
+} from "@/components/ui/sonner";
 
 import { AppProvider } from "@/context/AppProvider";
 
@@ -26,9 +28,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 import AppShell from "@/components/AppShell";
 
-/* ================= PAGES ================= */
+/* ================= LEARNER PAGES ================= */
 
-import Index from "@/pages/Index";
+import Landing from "@/pages/Landing";
 
 import Auth from "@/pages/Auth";
 
@@ -46,7 +48,13 @@ import PortsOfCall from "@/pages/PortsOfCall";
 
 import Profile from "@/pages/Profile";
 
-import TestVideo from "@/pages/TestVideo";
+/* ================= GUIDE PAGES ================= */
+
+import GuideDashboard from "@/pages/GuideDashboard";
+
+import GuideOnboarding from "@/pages/GuideOnboarding";
+
+/* ================= SYSTEM ================= */
 
 import NotFound from "@/pages/NotFound";
 
@@ -58,41 +66,6 @@ const queryClient =
 /* ================= APP ================= */
 
 const App = () => {
-  /* ================= TEST SUPABASE ================= */
-
-  useEffect(() => {
-    const testConnection =
-      async () => {
-        try {
-          const {
-            data,
-            error,
-          } = await supabase
-            .from("languages")
-            .select("*");
-
-          console.log(
-            "SUPABASE DATA:",
-            data
-          );
-
-          console.log(
-            "SUPABASE ERROR:",
-            error
-          );
-        } catch (err) {
-          console.error(
-            "SUPABASE CRASH:",
-            err
-          );
-        }
-      };
-
-    testConnection();
-  }, []);
-
-  /* ================= UI ================= */
-
   return (
     <QueryClientProvider
       client={queryClient}
@@ -109,7 +82,7 @@ const App = () => {
 
               <Route
                 path="/"
-                element={<Index />}
+                element={<Landing />}
               />
 
               {/* ================= AUTH ================= */}
@@ -119,7 +92,7 @@ const App = () => {
                 element={<Auth />}
               />
 
-              {/* ================= ONBOARDING ================= */}
+              {/* ================= LEARNER ONBOARDING ================= */}
 
               <Route
                 path="/onboarding"
@@ -130,7 +103,18 @@ const App = () => {
                 }
               />
 
-              {/* ================= APP ================= */}
+              {/* ================= GUIDE ONBOARDING ================= */}
+
+              <Route
+                path="/guide-onboarding"
+                element={
+                  <ProtectedRoute>
+                    <GuideOnboarding />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* ================= LEARNER APP ================= */}
 
               <Route
                 path="/app"
@@ -147,7 +131,7 @@ const App = () => {
                   element={<Home />}
                 />
 
-                {/* PREP */}
+                {/* VOYAGE PREP */}
 
                 <Route
                   path="prep"
@@ -156,14 +140,14 @@ const App = () => {
                   }
                 />
 
-                {/* SHORE */}
+                {/* LIVE SHORES */}
 
                 <Route
                   path="shore"
                   element={<Shore />}
                 />
 
-                {/* SOLO */}
+                {/* SOLO SAIL */}
 
                 <Route
                   path="sail"
@@ -191,13 +175,13 @@ const App = () => {
                 />
               </Route>
 
-              {/* ================= VIDEO TEST ================= */}
+              {/* ================= GUIDE DASHBOARD ================= */}
 
               <Route
-                path="/test-video"
+                path="/guide-dashboard"
                 element={
                   <ProtectedRoute>
-                    <TestVideo />
+                    <GuideDashboard />
                   </ProtectedRoute>
                 }
               />
@@ -229,11 +213,3 @@ const App = () => {
 };
 
 export default App;
-
-/* ================= ENV DEBUG ================= */
-
-console.log(
-  "SUPABASE URL:",
-  import.meta.env
-    .VITE_SUPABASE_URL
-);

@@ -1,38 +1,30 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   ShieldCheck,
   Users,
   BellRing,
-  Anchor,
+  Radio,
+  Clock3,
 } from "lucide-react";
 
 import { getSessions } from "@/api/sessions";
+
 import SessionModal from "@/components/SessionModal";
 
 /* =========================================================
    TYPES
 ========================================================= */
 
-type Guide = {
-  id: string;
-  name: string;
-  initials: string;
-};
-
-type Language = {
-  id: string;
-  code: string;
-  name: string;
-  flag?: string;
-};
-
-type Scenario = {
-  id: string;
-  title: string;
-};
-
 export type Session = {
   id: string;
+
+  title?: string;
+
+  language?: string;
 
   status: "live" | "upcoming";
 
@@ -44,11 +36,7 @@ export type Session = {
 
   starts_at: string | null;
 
-  guides: Guide[];
-
-  languages: Language[];
-
-  scenarios: Scenario[];
+  room_url?: string;
 };
 
 /* =========================================================
@@ -56,44 +44,45 @@ export type Session = {
 ========================================================= */
 
 const Shore = () => {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] =
+    useState<Session[]>([]);
 
   const [filter, setFilter] =
-    useState<string>("all");
+    useState("all");
 
   const [openSession, setOpenSession] =
     useState<string | null>(null);
 
   const [loading, setLoading] =
-    useState<boolean>(true);
+    useState(true);
 
   /* =========================================================
-     LOAD DATA
+     LOAD SESSIONS
   ========================================================= */
 
   useEffect(() => {
-    const loadSessions = async () => {
-      setLoading(true);
+    const loadSessions =
+      async () => {
+        try {
+          setLoading(true);
 
-      try {
-        const data = await getSessions();
+          const data =
+            await getSessions();
 
-        if (Array.isArray(data)) {
-          setSessions(data as Session[]);
-        } else {
+          setSessions(
+            data || []
+          );
+        } catch (error) {
+          console.error(
+            "Failed to load sessions:",
+            error
+          );
+
           setSessions([]);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error(
-          "Failed to load sessions:",
-          error
-        );
-
-        setSessions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
     loadSessions();
   }, []);
@@ -102,59 +91,45 @@ const Shore = () => {
      FILTERED SESSIONS
   ========================================================= */
 
-  const filteredSessions = sessions.filter(
-    (session) => {
-      if (filter === "all") return true;
+  const filteredSessions =
+    sessions.filter(
+      (session) => {
+        if (filter === "all")
+          return true;
 
-      return (
-        session.languages?.[0]?.code ===
-        filter
-      );
-    }
-  );
+        return (
+          session.language ===
+          filter
+        );
+      }
+    );
 
   /* =========================================================
      LIVE COUNT
   ========================================================= */
 
-  const liveCount = sessions.filter(
-    (session) => session.status === "live"
-  ).length;
+  const liveCount =
+    sessions.filter(
+      (session) =>
+        session.status ===
+        "live"
+    ).length;
 
   /* =========================================================
      LANGUAGE FILTERS
   ========================================================= */
 
-  const languageMap = new Map<
-    string,
-    Language
-  >();
-
-  sessions.forEach((session) => {
-    const language =
-      session.languages?.[0];
-
-    if (
-      language &&
-      !languageMap.has(language.code)
-    ) {
-      languageMap.set(
-        language.code,
-        language
-      );
-    }
-  });
-
-  const languageFilters: Language[] = [
-    {
-      id: "all",
-      code: "all",
-      name: "All",
-      flag: "",
-    },
-
-    ...Array.from(languageMap.values()),
-  ];
+  const languages =
+    Array.from(
+      new Set(
+        sessions
+          .map(
+            (s) =>
+              s.language
+          )
+          .filter(Boolean)
+      )
+    );
 
   /* =========================================================
      UI
@@ -162,7 +137,9 @@ const Shore = () => {
 
   return (
     <div className="animate-fade-in">
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
       <h1 className="font-serif text-4xl mb-1">
         Live Shores
@@ -174,7 +151,9 @@ const Shore = () => {
         {liveCount} live right now
       </p>
 
-      {/* SAFETY */}
+      {/* =====================================================
+          SAFETY
+      ===================================================== */}
 
       <div className="ts-card p-3 flex items-center gap-2 text-xs text-muted-foreground mb-5">
         <ShieldCheck
@@ -183,39 +162,56 @@ const Shore = () => {
         />
 
         <span>
-          All shores are AI-monitored.
-          No external links. No contact
-          sharing.
+          All shores are
+          AI-monitored.
+          No external links.
+          No contact sharing.
         </span>
       </div>
 
-      {/* FILTERS */}
+      {/* =====================================================
+          FILTERS
+      ===================================================== */}
 
       <div className="flex gap-2 overflow-x-auto pb-2 mb-5">
-        {languageFilters.map((language) => {
-          const active =
-            filter === language.code;
+        <button
+          onClick={() =>
+            setFilter("all")
+          }
+          className={`px-4 py-1.5 rounded-full text-sm border whitespace-nowrap transition ${
+            filter === "all"
+              ? "bg-primary text-primary-foreground border-primary"
+              : "border-surface-2 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          All
+        </button>
 
-          return (
+        {languages.map(
+          (language) => (
             <button
-              key={language.code}
+              key={language}
               onClick={() =>
-                setFilter(language.code)
+                setFilter(
+                  language || ""
+                )
               }
               className={`px-4 py-1.5 rounded-full text-sm border whitespace-nowrap transition ${
-                active
+                filter ===
+                language
                   ? "bg-primary text-primary-foreground border-primary"
                   : "border-surface-2 text-muted-foreground hover:text-foreground"
               }`}
             >
-              {language.flag}{" "}
-              {language.name}
+              {language}
             </button>
-          );
-        })}
+          )
+        )}
       </div>
 
-      {/* LOADING */}
+      {/* =====================================================
+          LOADING
+      ===================================================== */}
 
       {loading && (
         <div className="ts-card p-6 text-center text-muted-foreground">
@@ -223,83 +219,95 @@ const Shore = () => {
         </div>
       )}
 
-      {/* SESSIONS */}
+      {/* =====================================================
+          SESSIONS
+      ===================================================== */}
 
       {!loading && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredSessions.map(
             (session) => {
-              const guide =
-                session.guides?.[0];
-
-              const language =
-                session.languages?.[0];
-
-              const scenario =
-                session.scenarios?.[0];
-
               const isLive =
                 session.status ===
                 "live";
 
               return (
                 <div
-                  key={session.id}
+                  key={
+                    session.id
+                  }
                   className="ts-card p-5 ts-hover"
                 >
                   {/* TOP */}
 
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center font-medium">
-                      {guide?.initials ||
-                        "G"}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <span className="font-medium">
-                          {guide?.name ||
-                            "Guide"}
-                        </span>
-
-                        <Anchor
-                          size={12}
-                          className="text-primary"
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary mb-2">
+                        <Radio
+                          size={
+                            12
+                          }
                         />
+
+                        {isLive
+                          ? "Live Shore"
+                          : "Upcoming Shore"}
                       </div>
 
                       <div className="text-xs text-muted-foreground">
-                        {language?.code?.toUpperCase()}{" "}
-                        · {session.level}
+                        {
+                          session.language
+                        }{" "}
+                        ·{" "}
+                        {
+                          session.level
+                        }
                       </div>
                     </div>
 
-                    {isLive ? (
-                      <span className="flex items-center gap-1 text-xs text-accent">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />
-
-                        Live
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        {session.starts_at ||
-                          "Upcoming"}
-                      </span>
-                    )}
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs ${
+                        isLive
+                          ? "bg-primary/10 text-primary"
+                          : "bg-surface text-muted-foreground"
+                      }`}
+                    >
+                      {
+                        session.status
+                      }
+                    </div>
                   </div>
 
                   {/* TITLE */}
 
-                  <h3 className="font-serif text-xl mb-2">
-                    {scenario?.title ||
-                      "Conversation Session"}
+                  <h3 className="font-serif text-2xl mb-3">
+                    {session.title ||
+                      "TalkShore Conversation Shore"}
                   </h3>
 
-                  {/* FOOTER */}
+                  {/* TIME */}
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-5">
+                    <Clock3
+                      size={14}
+                    />
+
+                    {session.starts_at
+                      ? new Date(
+                          session.starts_at
+                        ).toLocaleString()
+                      : "Schedule pending"}
+                  </div>
+
+                  {/* PARTICIPANTS */}
+
+                  <div className="flex items-center justify-between mb-5">
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Users size={12} />
+                      <Users
+                        size={
+                          12
+                        }
+                      />
 
                       {
                         session.participants
@@ -314,28 +322,28 @@ const Shore = () => {
 
                   {/* CTA */}
 
-                  <div className="mt-4">
-                    {isLive ? (
-                      <button
-                        onClick={() =>
-                          setOpenSession(
-                            session.id
-                          )
+                  {isLive ? (
+                    <button
+                      onClick={() =>
+                        setOpenSession(
+                          session.id
+                        )
+                      }
+                      className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-full hover:opacity-90 transition"
+                    >
+                      Board This Shore
+                    </button>
+                  ) : (
+                    <button className="w-full border border-surface-2 text-foreground font-medium py-3 rounded-full hover:bg-surface transition inline-flex items-center justify-center gap-2">
+                      <BellRing
+                        size={
+                          16
                         }
-                        className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-full hover:opacity-90 transition"
-                      >
-                        Board This Shore
-                      </button>
-                    ) : (
-                      <button className="w-full border border-surface-2 text-foreground font-medium py-3 rounded-full hover:bg-surface transition inline-flex items-center justify-center gap-2">
-                        <BellRing
-                          size={16}
-                        />
+                      />
 
-                        Set Reminder
-                      </button>
-                    )}
-                  </div>
+                      Set Reminder
+                    </button>
+                  )}
                 </div>
               );
             }
@@ -343,21 +351,30 @@ const Shore = () => {
         </div>
       )}
 
-      {/* EMPTY */}
+      {/* =====================================================
+          EMPTY STATE
+      ===================================================== */}
 
       {!loading &&
-        filteredSessions.length === 0 && (
+        filteredSessions.length ===
+          0 && (
           <div className="ts-card p-6 text-center text-muted-foreground">
             No shores available yet.
           </div>
         )}
 
-      {/* MODAL */}
+      {/* =====================================================
+          SESSION MODAL
+      ===================================================== */}
 
       <SessionModal
-        sessionId={openSession}
+        sessionId={
+          openSession
+        }
         onClose={() =>
-          setOpenSession(null)
+          setOpenSession(
+            null
+          )
         }
       />
     </div>

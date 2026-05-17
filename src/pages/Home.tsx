@@ -5,8 +5,8 @@ import {
 
 import {
   Bell,
-  Anchor,
   Users,
+  Radio,
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
@@ -30,24 +30,10 @@ import { lessons } from "@/data/mockData";
 
 /* ================= TYPES ================= */
 
-type Guide = {
-  name: string;
-
-  initials: string;
-};
-
-type Language = {
-  code: string;
-
-  name: string;
-};
-
-type Scenario = {
-  title: string;
-};
-
 type Session = {
   id: string;
+
+  title?: string;
 
   status: string;
 
@@ -55,11 +41,11 @@ type Session = {
 
   participants: number;
 
-  guides: Guide[];
+  max_participants: number;
 
-  languages: Language[];
+  starts_at: string;
 
-  scenarios: Scenario[];
+  room_url?: string;
 };
 
 /* ================= COMPONENT ================= */
@@ -141,7 +127,9 @@ const Home = () => {
     sessions.filter(
       (session) =>
         session.status ===
-        "live"
+          "live" ||
+        session.status ===
+          "upcoming"
     );
 
   const nextLesson =
@@ -156,24 +144,15 @@ const Home = () => {
         "ready"
     );
 
-  const nextSession =
-    nextLesson
-      ? sessions.find(
-          (session) =>
-            session.id ===
-            nextLesson.prepares_for
-        )
-      : null;
-
   /* ================= USER DISPLAY ================= */
 
   const firstName =
-    profile?.full_name?.split(" ")[0]
-    ?.split(" ")[0] ||
-  user?.user_metadata
-    ?.full_name
-    ?.split(" ")[0] ||
-  "Voyager";
+    profile?.full_name
+      ?.split(" ")[0] ||
+    user?.user_metadata
+      ?.full_name
+      ?.split(" ")[0] ||
+    "Voyager";
 
   const userInitial =
     firstName.charAt(0);
@@ -209,19 +188,16 @@ const Home = () => {
       </h1>
 
       <p className="text-muted-foreground mb-6">
-        Your next shore boards
-        soon.
+        Your next shore boards soon.
       </p>
 
       {/* ================= ACTIVE LANGUAGE ================= */}
 
       <div className="ts-card p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">
-              Learning Language
-            </span>
-          </div>
+          <span className="font-medium">
+            Learning Language
+          </span>
 
           <span className="text-xs bg-accent/10 px-2 py-1 rounded-full uppercase">
             {activeLanguage}
@@ -238,98 +214,91 @@ const Home = () => {
         </div>
       </div>
 
-      {/* ================= LIVE SESSIONS ================= */}
+      {/* ================= LIVE SHORES ================= */}
 
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-serif text-2xl">
-          Boarding Now
+          Live Shores
         </h2>
 
         <Link
           to="/app/shore"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          All shores
+          View all
         </Link>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2 mb-8">
         {liveSessions.map(
-          (session) => {
-            const guide =
-              session.guides?.[0];
+          (session) => (
+            <div
+              key={session.id}
+              className="ts-card p-5 min-w-[280px]"
+            >
+              {/* STATUS */}
 
-            const language =
-              session.languages?.[0];
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary">
+                  <Radio
+                    size={12}
+                  />
 
-            const scenario =
-              session.scenarios?.[0];
-
-            return (
-              <div
-                key={session.id}
-                className="ts-card p-4 min-w-[260px]"
-              >
-                {/* GUIDE */}
-
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-xs">
-                    {
-                      guide?.initials
-                    }
-                  </div>
-
-                  <div className="flex items-center gap-1 text-sm">
-                    {guide?.name}
-
-                    <Anchor
-                      size={12}
-                      className="text-primary"
-                    />
-                  </div>
+                  {session.status}
                 </div>
 
-                {/* LANGUAGE */}
-
-                <div className="text-xs text-muted-foreground mb-1">
-                  {language?.code?.toUpperCase()}
-                  {" · "}
-                  {session.level}
-                </div>
-
-                {/* SCENARIO */}
-
-                <p className="font-medium mb-3">
+                <span className="text-xs text-muted-foreground">
                   {
-                    scenario?.title
+                    session.level
                   }
-                </p>
-
-                {/* FOOTER */}
-
-                <div className="flex items-center justify-between">
-                  <span className="text-xs flex items-center gap-1">
-                    <Users size={12} />
-
-                    {
-                      session.participants
-                    }
-                  </span>
-
-                  <button
-                    onClick={() =>
-                      handleBoard(
-                        session.id
-                      )
-                    }
-                    className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-full hover:opacity-90 transition"
-                  >
-                    Board
-                  </button>
-                </div>
+                </span>
               </div>
-            );
-          }
+
+              {/* TITLE */}
+
+              <h3 className="font-serif text-xl mb-2">
+                {session.title ||
+                  "TalkShore Live Session"}
+              </h3>
+
+              {/* TIME */}
+
+              <p className="text-sm text-muted-foreground mb-5">
+                {new Date(
+                  session.starts_at
+                ).toLocaleString()}
+              </p>
+
+              {/* FOOTER */}
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs flex items-center gap-1">
+                  <Users
+                    size={12}
+                  />
+
+                  {
+                    session.participants
+                  }
+                  /
+                  {
+                    session.max_participants
+                  }
+                </span>
+
+                <button
+                  onClick={() =>
+                    handleBoard(
+                      session.id
+                    )
+                  }
+                  className="bg-primary text-primary-foreground text-sm px-4 py-2 rounded-full hover:opacity-90 transition"
+                >
+                  Board
+                </button>
+              </div>
+            </div>
+          )
         )}
       </div>
 
@@ -353,19 +322,7 @@ const Home = () => {
                 nextLesson.duration_min
               }
               {" "}
-              min preparation
-              session.
-            </p>
-
-            <p className="text-sm text-muted-foreground mb-6">
-              Prepares you for
-              {" "}
-              <span className="text-foreground">
-                {nextSession
-                  ?.scenarios?.[0]
-                  ?.title ||
-                  "an upcoming shore"}
-              </span>
+              min preparation session.
             </p>
 
             <Link

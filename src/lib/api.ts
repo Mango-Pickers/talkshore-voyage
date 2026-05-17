@@ -1,62 +1,55 @@
 import { supabase } from "./supabaseClient";
 
+/* ================= TYPES ================= */
+
 export interface Session {
   id: string;
+
+  title?: string;
+
   level: string;
+
   participants: number;
+
   max_participants: number;
+
   starts_at: string;
+
   status: string;
 
-  guides: {
-    name: string;
-    initials: string;
-    verified: boolean;
-  }[];
-
-  languages: {
-    name: string;
-    flag: string;
-    code: string;
-  }[];
-
-  scenarios: {
-    title: string;
-  }[];
+  room_url?: string;
 }
 
-export const getSessions = async (): Promise<Session[]> => {
-  const { data, error } = await supabase
-    .from("sessions")
-    .select(`
-      id,
-      level,
-      participants,
-      max_participants,
-      starts_at,
-      status,
+/* ================= API ================= */
 
-      guides (
-        name,
-        initials,
-        verified
-      ),
+export const getSessions =
+  async (): Promise<
+    Session[]
+  > => {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("sessions")
+      .select("*")
+      .order(
+        "starts_at",
+        {
+          ascending: true,
+        }
+      );
 
-      languages (
-        name,
-        flag,
-        code
-      ),
+    if (error) {
+      console.error(
+        "Error fetching sessions:",
+        error
+      );
 
-      scenarios (
-        title
-      )
-    `);
+      return [];
+    }
 
-  if (error) {
-    console.error("Error fetching sessions:", error);
-    return [];
-  }
-
-  return data as Session[];
-};
+    return (
+      (data as Session[]) ??
+      []
+    );
+  };

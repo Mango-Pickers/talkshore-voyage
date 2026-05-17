@@ -1,33 +1,18 @@
 import {
   Users,
   BellRing,
-  Anchor,
+  Radio,
+  Clock3,
 } from "lucide-react";
 
 /* =========================================================
    TYPES
 ========================================================= */
 
-type Guide = {
-  id: string;
-  name: string;
-  initials: string;
-};
-
-type Language = {
-  id: string;
-  code: string;
-  name: string;
-  flag?: string;
-};
-
-type Scenario = {
-  id: string;
-  title: string;
-};
-
 export type Session = {
   id: string;
+
+  title?: string;
 
   status: "live" | "upcoming";
 
@@ -39,11 +24,7 @@ export type Session = {
 
   starts_at: string | null;
 
-  guides: Guide[];
-
-  languages: Language[];
-
-  scenarios: Scenario[];
+  room_url?: string;
 };
 
 /* =========================================================
@@ -53,7 +34,9 @@ export type Session = {
 type Props = {
   session: Session;
 
-  onBoard?: (id: string) => void;
+  onBoard?: (
+    id: string
+  ) => void;
 };
 
 /* =========================================================
@@ -64,97 +47,115 @@ const SessionCard = ({
   session,
   onBoard,
 }: Props) => {
-  const guide =
-    session.guides?.[0];
-
-  const language =
-    session.languages?.[0];
-
-  const scenario =
-    session.scenarios?.[0];
-
   const isLive =
-    session.status === "live";
+    session.status ===
+    "live";
 
   return (
     <div className="ts-card p-5 ts-hover">
-      {/* TOP */}
+      {/* =====================================================
+          TOP
+      ===================================================== */}
 
-      <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center font-medium">
-          {guide?.initials || "G"}
-        </div>
-
-        <div className="flex-1">
-          <div className="flex items-center gap-1 text-sm">
-            <span className="font-medium">
-              {guide?.name || "Guide"}
-            </span>
-
-            <Anchor
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary mb-2">
+            <Radio
               size={12}
-              className="text-primary"
             />
+
+            {isLive
+              ? "Live Shore"
+              : "Upcoming Shore"}
           </div>
 
           <div className="text-xs text-muted-foreground">
-            {language?.code?.toUpperCase()} ·{" "}
             {session.level}
           </div>
         </div>
 
-        {isLive ? (
-          <span className="flex items-center gap-1 text-xs text-accent">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />
-
-            Live
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            {session.starts_at ||
-              "Upcoming"}
-          </span>
-        )}
+        <div
+          className={`px-3 py-1 rounded-full text-xs ${
+            isLive
+              ? "bg-primary/10 text-primary"
+              : "bg-surface text-muted-foreground"
+          }`}
+        >
+          {session.status}
+        </div>
       </div>
 
-      {/* TITLE */}
+      {/* =====================================================
+          TITLE
+      ===================================================== */}
 
-      <h3 className="font-serif text-xl mb-2">
-        {scenario?.title ||
-          "Conversation Session"}
+      <h3 className="font-serif text-2xl mb-3">
+        {session.title ||
+          "TalkShore Live Session"}
       </h3>
 
-      {/* FOOTER */}
+      {/* =====================================================
+          DATE / TIME
+      ===================================================== */}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-5">
+        <Clock3
+          size={14}
+        />
+
+        {session.starts_at
+          ? new Date(
+              session.starts_at
+            ).toLocaleString()
+          : "Schedule pending"}
+      </div>
+
+      {/* =====================================================
+          PARTICIPANTS
+      ===================================================== */}
+
+      <div className="flex items-center justify-between mb-5">
         <span className="text-xs text-muted-foreground flex items-center gap-1">
-          <Users size={12} />
+          <Users
+            size={12}
+          />
 
-          {session.participants}/
-          {session.max_participants} aboard
+          {
+            session.participants
+          }
+          /
+          {
+            session.max_participants
+          }
+          {" "}
+          aboard
         </span>
       </div>
 
-      {/* CTA */}
+      {/* =====================================================
+          CTA
+      ===================================================== */}
 
-      <div className="mt-4">
-        {isLive ? (
-          <button
-            onClick={() =>
-              onBoard?.(session.id)
-            }
-            className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-full hover:opacity-90 transition"
-          >
-            Board This Shore
-          </button>
-        ) : (
-          <button className="w-full border border-surface-2 text-foreground font-medium py-3 rounded-full hover:bg-surface transition inline-flex items-center justify-center gap-2">
-            <BellRing size={16} />
+      {isLive ? (
+        <button
+          onClick={() =>
+            onBoard?.(
+              session.id
+            )
+          }
+          className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-full hover:opacity-90 transition"
+        >
+          Board This Shore
+        </button>
+      ) : (
+        <button className="w-full border border-surface-2 text-foreground font-medium py-3 rounded-full hover:bg-surface transition inline-flex items-center justify-center gap-2">
+          <BellRing
+            size={16}
+          />
 
-            Set Reminder
-          </button>
-        )}
-      </div>
+          Set Reminder
+        </button>
+      )}
     </div>
   );
 };

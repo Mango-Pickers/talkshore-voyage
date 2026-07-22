@@ -10,7 +10,9 @@ import {
   signUp,
 } from "@/api/auth";
 
-import { supabase } from "@/lib/supabaseClient";
+import { doc, getDoc } from "firebase/firestore";
+
+import { auth, db } from "@/lib/firebaseClient";
 
 const Auth = () => {
   const navigate =
@@ -85,10 +87,7 @@ const Auth = () => {
 
           /* ================= GET USER ================= */
 
-          const {
-            data: { user },
-          } =
-            await supabase.auth.getUser();
+          const user = auth.currentUser;
 
           if (!user) {
             setError(
@@ -100,16 +99,8 @@ const Auth = () => {
 
           /* ================= LOAD PROFILE ================= */
 
-          const {
-            data: profile,
-          } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq(
-              "id",
-              user.id
-            )
-            .single();
+          const profileSnapshot = await getDoc(doc(db, "profiles", user.uid));
+          const profile = profileSnapshot.data();
 
           /* ================= ROLE ROUTING ================= */
 

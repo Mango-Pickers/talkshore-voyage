@@ -12,7 +12,9 @@ import { languages } from "@/data/mockData";
 
 import { useApp } from "@/hooks/useApp";
 
-import { supabase } from "@/lib/supabaseClient";
+import { doc, updateDoc } from "firebase/firestore";
+
+import { db } from "@/lib/firebaseClient";
 
 import Logo from "@/components/Logo";
 
@@ -114,9 +116,9 @@ const Onboarding = () => {
     try {
       setSaving(true);
 
-      await supabase
-        .from("profiles")
-        .update({
+      await updateDoc(
+        doc(db, "profiles", user.uid),
+        {
           learning_language:
             draft.language,
 
@@ -126,8 +128,8 @@ const Onboarding = () => {
 
           days_per_week:
             draft.daysPerWeek,
-        })
-        .eq("id", user.id);
+        }
+      );
 
       setOnboarding(draft);
 

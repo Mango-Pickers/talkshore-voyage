@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+
+import { db } from "@/lib/firebaseClient";
 
 interface Video {
   id: string;
@@ -22,16 +24,15 @@ const PortsOfCall = () => {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const { data, error } = await supabase
-          .from("videos")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          throw error;
-        }
-
-        setVideos(data || []);
+        const snapshot = await getDocs(
+          query(collection(db, "videos"), orderBy("created_at", "desc"))
+        );
+        setVideos(
+          snapshot.docs.map((video) => ({
+            id: video.id,
+            ...video.data(),
+          })) as Video[]
+        );
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);

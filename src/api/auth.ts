@@ -1,4 +1,12 @@
-import { supabase } from "@/lib/supabaseClient";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  updateProfile,
+} from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+
+import { auth, db } from "@/lib/firebaseClient";
 
 /* ================= TYPES ================= */
 
@@ -20,31 +28,18 @@ export const signUp = async ({
   password,
   role,
 }: SignUpData) => {
-  const { data, error } =
-    await supabase.auth.signUp({
-      email,
+  const credential = await createUserWithEmailAndPassword(auth, email, password);
 
-      password,
+  await updateProfile(credential.user, { displayName: first_name });
+  await setDoc(doc(db, "profiles", credential.user.uid), {
+    id: credential.user.uid,
+    full_name: first_name,
+    email,
+    role,
+    created_at: serverTimestamp(),
+  });
 
-      options: {
-        data: {
-          /*
-           Store ONLY full_name in Supabase
-           so it aligns with your profiles table
-          */
-
-          full_name: first_name,
-
-          role,
-        },
-      },
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return credential;
 };
 
 /* ================= SIGN IN ================= */
@@ -53,28 +48,11 @@ export const signIn = async (
   email: string,
   password: string
 ) => {
-  const { data, error } =
-    await supabase.auth.signInWithPassword(
-      {
-        email,
-        password,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return signInWithEmailAndPassword(auth, email, password);
 };
 
 /* ================= SIGN OUT ================= */
 
 export const signOut = async () => {
-  const { error } =
-    await supabase.auth.signOut();
-
-  if (error) {
-    throw error;
-  }
+  await firebaseSignOut(auth);
 };

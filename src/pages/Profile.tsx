@@ -6,7 +6,7 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
-import { supabase } from "@/lib/supabaseClient";
+import { signOut } from "@/api/auth";
 
 import { useApp } from "@/hooks/useApp";
 
@@ -36,7 +36,7 @@ const Profile = () => {
   /* ================= LOGOUT ================= */
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
 
     setIsOnboarded(false);
 

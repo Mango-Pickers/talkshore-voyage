@@ -4,9 +4,10 @@ import {
   useState,
 } from "react";
 
-import { User } from "@supabase/supabase-js";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
-import { supabase } from "@/lib/supabaseClient";
+import { auth, db } from "@/lib/firebaseClient";
 
 import { AppContext } from "./app-context";
 
@@ -52,24 +53,14 @@ export const AppProvider = ({
     userId: string
   ) => {
     try {
-      const { data, error } =
-        await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .single();
+      const profileSnapshot = await getDoc(doc(db, "profiles", userId));
 
-      if (error) {
-        console.error(
-          "PROFILE LOAD ERROR:",
-          error
-        );
+      if (!profileSnapshot.exists()) return;
 
-        return;
-      }
-
-      const typedProfile =
-        data as UserProfile;
+      const typedProfile = {
+        id: profileSnapshot.id,
+        ...profileSnapshot.data(),
+      } as UserProfile;
 
       setProfile(typedProfile);
 
@@ -104,14 +95,11 @@ export const AppProvider = ({
 
   const refreshProfile =
     async (): Promise<void> => {
-      const {
-        data: { user },
-      } =
-        await supabase.auth.getUser();
+      const user = auth.currentUser;
 
       if (!user) return;
 
-      await loadProfile(user.id);
+      await loadProfile(user.uid);
     };
 
   /* ================= INITIALIZE APP ================= */
@@ -119,15 +107,12 @@ export const AppProvider = ({
   useEffect(() => {
     const initialize = async () => {
       try {
-        const {
-          data: { user },
-        } =
-          await supabase.auth.getUser();
+        const user = auth.currentUser;
 
         setUser(user);
 
         if (user) {
-          await loadProfile(user.id);
+          await loadProfile(user.uid);
         }
       } catch (err) {
         console.error(
@@ -143,19 +128,15 @@ export const AppProvider = ({
 
     /* ================= AUTH LISTENER ================= */
 
-    const {
-      data: { subscription },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          const currentUser =
-            session?.user ?? null;
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
 
           setUser(currentUser);
 
           if (currentUser) {
             loadProfile(
-              currentUser.id
+              currentUser.uid
             );
           } else {
             setProfile(null);
@@ -164,12 +145,10 @@ export const AppProvider = ({
 
             setOnboarding({});
           }
-        }
-      );
+      }
+    );
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return unsubscribe;
   }, []);
 
   /* ================= PROVIDER ================= */

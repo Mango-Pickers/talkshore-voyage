@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsProfile(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /profiles/{userId} {
+      allow create, read, update: if ownsProfile(userId);
+      allow delete: if false;
+    }
+
+    match /bookings/{bookingId} {
+      allow create: if signedIn()
+        && request.resource.data.user_id == request.auth.uid;
+      allow read, update, delete: if signedIn()
+        && resource.data.user_id == request.auth.uid;
+    }
+
+    match /sessions/{document=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /lessons/{document=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /scenarios/{document=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /videos/{document=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+  }
+}

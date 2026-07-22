@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabaseClient";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+
+import { db } from "@/lib/firebaseClient";
 
 /* ================= TYPES ================= */
 
@@ -25,25 +27,17 @@ export type Session = {
 export async function getSessions(): Promise<
   Session[]
 > {
-  const { data, error } =
-    await supabase
-      .from("sessions")
-      .select("*")
-      .order("starts_at", {
-        ascending: true,
-      });
-
-  if (error) {
-    console.error(
-      "Supabase session error:",
-      error
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "sessions"), orderBy("starts_at", "asc"))
     );
 
+    return snapshot.docs.map((session) => ({
+      id: session.id,
+      ...session.data(),
+    })) as Session[];
+  } catch (error) {
+    console.error("Firebase session error:", error);
     return [];
   }
-
-  return (
-    (data as Session[]) ??
-    []
-  );
 }

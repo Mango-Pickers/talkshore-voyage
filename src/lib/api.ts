@@ -1,4 +1,6 @@
-import { supabase } from "./supabaseClient";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+
+import { db } from "./firebaseClient";
 
 /* ================= TYPES ================= */
 
@@ -26,20 +28,16 @@ export const getSessions =
   async (): Promise<
     Session[]
   > => {
-    const {
-      data,
-      error,
-    } = await supabase
-      .from("sessions")
-      .select("*")
-      .order(
-        "starts_at",
-        {
-          ascending: true,
-        }
+    try {
+      const snapshot = await getDocs(
+        query(collection(db, "sessions"), orderBy("starts_at", "asc"))
       );
 
-    if (error) {
+      return snapshot.docs.map((session) => ({
+        id: session.id,
+        ...session.data(),
+      })) as Session[];
+    } catch (error) {
       console.error(
         "Error fetching sessions:",
         error
@@ -48,8 +46,4 @@ export const getSessions =
       return [];
     }
 
-    return (
-      (data as Session[]) ??
-      []
-    );
   };

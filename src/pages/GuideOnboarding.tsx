@@ -2,7 +2,9 @@ import { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
-import { supabase } from "@/lib/supabaseClient";
+import { doc, updateDoc } from "firebase/firestore";
+
+import { db } from "@/lib/firebaseClient";
 
 import { useApp } from "@/hooks/useApp";
 
@@ -48,10 +50,9 @@ const GuideOnboarding = () => {
 
         if (!user) return;
 
-        const { error } =
-          await supabase
-            .from("profiles")
-            .update({
+        await updateDoc(
+          doc(db, "profiles", user.uid),
+          {
               guide_language:
                 form.guide_language,
 
@@ -67,12 +68,8 @@ const GuideOnboarding = () => {
 
               is_guide_onboarded:
                 true,
-            })
-            .eq("id", user.id);
-
-        if (error) {
-          throw error;
-        }
+          }
+        );
 
         navigate(
           "/guide-dashboard"

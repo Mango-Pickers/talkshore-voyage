@@ -1,4 +1,4 @@
-import { User } from "@supabase/supabase-js";
+import type { User } from "firebase/auth";
 
 export type UserRole =
   | "learner"

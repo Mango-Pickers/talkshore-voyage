@@ -200,7 +200,7 @@ const Landing = () => {
               </div>
 
               <h1 className="max-w-3xl font-serif text-[3.35rem] leading-[0.98] tracking-[-0.035em] sm:text-7xl lg:text-[5.35rem]">
-                Learn a language by
+                Learn a language by{" "}
                 <span className="block text-primary">actually speaking it.</span>
               </h1>
 
